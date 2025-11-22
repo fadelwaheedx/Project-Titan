@@ -21,6 +21,14 @@ class ConfigGenerator:
         self.env.filters['ip_network_start'] = self._filter_network_start
         self.env.filters['ip_network_end'] = self._filter_network_end
         self.env.filters['ip_network_base'] = self._filter_network_base
+        self.env.filters['ros_escape'] = self._filter_ros_escape
+
+    def _filter_ros_escape(self, value):
+        """Escapes special characters for RouterOS strings."""
+        if not isinstance(value, str):
+            return value
+        # Escape " and \
+        return value.replace('\\', '\\\\').replace('"', '\\"')
 
     def _filter_network_start(self, ip_str):
         """Returns the start IP of a DHCP pool (e.g., x.x.x.10) from an interface IP."""
