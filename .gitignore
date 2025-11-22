@@ -11,3 +11,4 @@ build/
 verification/
 tools/verify_*.py
 setup.rsc
+*.png
