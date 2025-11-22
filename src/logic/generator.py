@@ -59,7 +59,16 @@ class ConfigGenerator:
         if 'generation_date' not in context:
             context['generation_date'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
-        template = self.env.get_template("routeros_v7_base.j2")
+        scenario = context.get('scenario_mode', 'simple')
+
+        if scenario == 'branch':
+            template_name = "scenario_branch.j2"
+        elif scenario == 'wisp':
+            template_name = "scenario_wisp.j2"
+        else:
+            template_name = "routeros_v7_base.j2"
+
+        template = self.env.get_template(template_name)
         return template.render(context)
 
 if __name__ == "__main__":

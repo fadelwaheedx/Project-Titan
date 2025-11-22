@@ -1,0 +1,31 @@
+[project]
+name = "project-titan"
+version = "2.0.0"
+description = "MikroTik Commander - Automate RouterOS configuration and security auditing."
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "flet>=0.28.0",
+    "paramiko>=3.4.0",
+    "netmiko>=4.3.0",
+    "jinja2>=3.1.0",
+    "scapy>=2.5.0"
+]
+
+[tool.flet.app]
+path = "src/main.py"
+
+[tool.flet.build]
+# Common build settings can go here if supported by Flet version
+
+[tool.flet.build.macos]
+bundle_id = "com.titan.commander"
+copyright = "Copyright (c) 2025 Project Titan"
+
+[tool.flet.build.windows]
+product_name = "Titan Commander"
+company_name = "Project Titan"
+copyright = "Copyright (c) 2025 Project Titan"
+
+[tool.flet.build.linux]
+app_id = "com.titan.commander"

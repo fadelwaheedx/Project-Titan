@@ -1,0 +1,30 @@
+# Scenario A: The Secure Branch Office
+# Inputs: wan1_ip, wan2_interface, vlan_ids (list/dict), hq_wg_pubkey
+
+/interface bridge
+add name=bridge vlan-filtering=yes
+
+# VLANs
+{% for vlan in vlan_ids %}
+/interface vlan add interface=bridge name=vlan{{vlan}} vlan-id={{vlan}}
+/ip address add address=192.168.{{vlan}}.1/24 interface=vlan{{vlan}}
+{% endfor %}
+
+# WAN1 (Static)
+/ip address add address={{wan1_ip}} interface=ether1
+
+# WAN2 (LTE - Failover)
+# Recursive routing placeholder
+/ip route
+add distance=1 gateway=8.8.8.8 check-gateway=ping target-scope=30
+add distance=1 dst-address=8.8.8.8 gateway={{wan1_gateway}} scope=30
+add distance=2 gateway={{wan2_interface}}
+
+# WireGuard to HQ
+/interface wireguard add name=wg-hq listen-port=13231
+/interface wireguard peers add interface=wg-hq public-key="{{hq_wg_pubkey}}" allowed-address=0.0.0.0/0 endpoint-address=hq.example.com endpoint-port=13231
+
+# OSPFv3 on Tunnel
+/routing ospf instance add name=ospf-v3-inst version=3
+/routing ospf area add instance=ospf-v3-inst name=backbone area-id=0.0.0.0
+/routing ospf interface-template add area=backbone interfaces=wg-hq

@@ -1,0 +1,16 @@
+# Scenario C: The WISP Tower
+# Inputs: mgmt_ip, ospf_area
+
+# Security
+/ip firewall filter
+add chain=input action=accept src-address={{mgmt_ip}} comment="Allow Mgmt"
+add chain=input action=drop comment="Drop All Other Input"
+
+# PPPoE Server
+/interface pppoe-server server
+add interface=ether2 service-name=service1 authentication=pap,chap,mschap1,mschap2
+
+# OSPFv3
+/routing ospf instance add name=ospf-inst-1
+/routing ospf area add instance=ospf-inst-1 name=wisp-area area-id={{ospf_area}}
+/routing ospf interface-template add area=wisp-area interfaces=ether1

@@ -145,20 +145,20 @@ add chain=forward action=drop comment="Drop All Other Forward";
 {% endif %}
 
 # --- ADVANCED SERVICES ---
+{% if adblock_enabled %}
+# Native Ad-Blocking (AdList) - RouterOS v7.15+
+/ip dns adlist add url="https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts";
+/ip dns set allow-remote-requests=yes;
+{% endif %}
+
 {% if container_enabled %}
 # Container Support
-# Note: Requires 'container' package and '/system/device-mode/update container=yes'
+# Note: Requires 'container' package and '/system/device-mode/update container=yes' (or 'advanced' in v7.17+)
 /interface veth add name=veth1 address=172.17.0.2/24 gateway=172.17.0.1;
 /interface bridge add name=dockers;
 /interface bridge port add bridge=dockers interface=veth1;
 /ip address add address=172.17.0.1/24 interface=dockers;
 /ip firewall nat add chain=srcnat src-address=172.17.0.0/24 out-interface-list=WAN action=masquerade;
-
-{% if pihole_enabled %}
-# PiHole / AdGuard Container
-/container config set registry-url=https://registry-1.docker.io;
-/container add remote-image="{{ pihole_url }}" interface=veth1 root-dir=flash/adguard logging=yes;
-{% endif %}
 {% endif %}
 
 :log info "Project Titan: Configuration Completed.";
