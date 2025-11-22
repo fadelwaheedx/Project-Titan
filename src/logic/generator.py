@@ -73,6 +73,8 @@ class ConfigGenerator:
             template_name = "scenario_branch.j2"
         elif scenario == 'wisp':
             template_name = "scenario_wisp.j2"
+        elif scenario == 'survival':
+            template_name = "routeros_survival.j2"
         else:
             template_name = "routeros_v7_base.j2"
 

@@ -1,0 +1,107 @@
+# -----------------------------------------------------------------------------
+# PROJECT TITAN: SURVIVAL MODE CONFIGURATION (RouterOS v7)
+# PROFILE: SCARCITY / CONFLICT ZONE
+# AUTHOR: JULES (Under Duress)
+# DATE: {{ generation_date }}
+# -----------------------------------------------------------------------------
+# WARNING: THIS CONFIGURATION PRIORITIZES POWER AND SURVIVAL OVER STANDARD
+# COMPLIANCE. DO NOT DEPLOY IN STABLE ENTERPRISE ENVIRONMENTS.
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# STAGE 1: POWER CONSERVATION ("The Blackout Prep")
+# -----------------------------------------------------------------------------
+:log info "SURVIVAL MODE: Initiating Power Conservation Protocols..."
+
+# 1.1 Disable LCD and LEDs (Stealth + Power Save)
+# Note: Not all devices have LCDs, catch errors.
+:do { /system lcd set enabled=no } on-error={};
+:do { /system leds settings set all-leds-off=yes } on-error={};
+
+# 1.2 Disable Beepers (Silence is safety)
+:do { /system routerboard settings set silent-boot=yes } on-error={};
+
+# 1.3 Disable Unused Packages (Save RAM/CPU)
+# Only basic routing required.
+/system package disable [find where name="ipv6"]
+/system package disable [find where name="iot"]
+/system package disable [find where name="gps"]
+
+# WARNING: REBOOT REQUIRED
+# We do NOT force a reboot as power might be unstable.
+:log warning "PENDING REBOOT - EXECUTE MANUALLY WHEN POWER IS STABLE to finalize package removal."
+
+# 1.4 Interface Scavenging
+# Disable all ether ports except WAN and Mgmt.
+# We assume shrapnel hasn't hit these two yet.
+# Input variables: wan_interface={{ wan_interface | default('ether1') }}, mgmt_interface={{ mgmt_interface | default('ether2') }}
+
+:foreach iface in=[/interface find type=ethernet] do={
+    :local ifName [/interface get $iface name];
+    :if ($ifName != "{{ wan_interface | default('ether1') }}" && $ifName != "{{ mgmt_interface | default('ether2') }}") do={
+        /interface disable $iface;
+        :log info "SURVIVAL: Disabled unused interface $ifName to save power.";
+    }
+}
+
+# -----------------------------------------------------------------------------
+# STAGE 2: RESILIENCE ("The Watchdog")
+# -----------------------------------------------------------------------------
+:log info "SURVIVAL MODE: Deploying Watchdogs..."
+
+# 2.1 The "Am I Still Alive?" Watchdog
+# Pings Google DNS. If it fails, it assumes the modem/uplink is frozen
+# and cycles the WAN interface power.
+/tool netwatch
+add host=8.8.8.8 interval=1m timeout=2s down-script={
+    :log warning "LINK DEAD: Cycling WAN Interface..."
+    /interface disable [find name="{{ wan_interface | default('ether1') }}"]
+    :delay 5s
+    /interface enable [find name="{{ wan_interface | default('ether1') }}"]
+    :log info "LINK DEAD: WAN Interface Cycled."
+} comment="Survival_Uplink_Watchdog"
+
+# 2.2 Backup Script (Local Flash Only - Cloud is a myth here)
+/system scheduler
+add name="Daily_Local_Backup" start-time=03:00:00 interval=24h on-event={
+    /system backup save name="survival_backup"
+    /export file="survival_export"
+    :log info "SURVIVAL MODE: Configuration saved locally."
+}
+
+# -----------------------------------------------------------------------------
+# STAGE 3: CPU-EFFICIENT FIREWALL ("The Sandbag Wall")
+# -----------------------------------------------------------------------------
+:log info "SURVIVAL MODE: Building Low-CPU Firewall..."
+
+# 3.1 Use RAW table for Drops (Bypasses Connection Tracking = Less CPU)
+/ip firewall raw
+add action=drop chain=prerouting comment="Drop Invalid/Bogon" src-address-list=bad_ipv4
+add action=drop chain=prerouting comment="Drop High Rate ICMP" protocol=icmp limit=10,5:packet
+
+# 3.2 Minimal Filter Rules (Input)
+/ip firewall filter
+add action=accept chain=input connection-state=established,related,untracked comment="Allow Established"
+add action=drop chain=input connection-state=invalid comment="Drop Invalid"
+add action=accept chain=input protocol=icmp comment="Allow Ping (Troubleshooting is life)"
+add action=accept chain=input src-address={{ mgmt_network | default('192.168.88.0/24') }} comment="Allow Management LAN"
+add action=drop chain=input comment="Drop Everything Else"
+
+# -----------------------------------------------------------------------------
+# STAGE 4: SERVICES ("Go Dark")
+# -----------------------------------------------------------------------------
+/ip service
+set telnet disabled=yes
+set ftp disabled=yes
+set www disabled=yes
+set api disabled=yes
+set api-ssl disabled=yes
+
+# Move SSH/Winbox off standard ports to reduce log noise (CPU usage)
+set ssh port=2222 address={{ mgmt_network | default('192.168.88.0/24') }}
+set winbox port=8291 address={{ mgmt_network | default('192.168.88.0/24') }}
+
+# Disable Discovery (Don't announce your location)
+/ip neighbor discovery-settings set discover-interface-list=none
+
+:log info "SURVIVAL MODE: Configuration Complete. Good luck."
