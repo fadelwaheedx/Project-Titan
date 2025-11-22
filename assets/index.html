@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Titan Topology</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+    <style>
+        body { margin: 0; background-color: #1a1c1e; }
+        #cy { width: 100vw; height: 100vh; display: block; }
+    </style>
+</head>
+<body>
+    <div id="cy"></div>
+    <script>
+        var cy = cytoscape({
+            container: document.getElementById('cy'),
+            style: [
+                {
+                    selector: 'node',
+                    style: {
+                        'background-color': '#007acc',
+                        'label': 'data(label)',
+                        'color': '#fff'
+                    }
+                },
+                {
+                    selector: 'edge',
+                    style: {
+                        'width': 3,
+                        'line-color': '#ccc',
+                        'target-arrow-color': '#ccc',
+                        'target-arrow-shape': 'triangle'
+                    }
+                }
+            ]
+        });
+
+        // This function is called by Python/Flet
+        function updateTopology(jsonData) {
+            cy.elements().remove();
+            cy.add(JSON.parse(jsonData));
+            cy.layout({ name: 'cose' }).run();
+        }
+
+        // Click Listener for Graph Interaction
+        cy.on('tap', 'node', function(evt){
+            var node = evt.target;
+            var data = node.data();
+            // Send node IP/Info back to Python via Flet Bridge
+            // We expect 'info' object to contain 'ip'
+            if(data.info && data.info.ip) {
+                console.log("Clicked Node IP: " + data.info.ip);
+                // Flet WebView PostMessage
+                // Check if window.chrome.webview exists (Windows) or webkit (Linux/Mac)
+                if (window.chrome && window.chrome.webview) {
+                     window.chrome.webview.postMessage(data.info.ip);
+                } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.flet) {
+                     window.webkit.messageHandlers.flet.postMessage(data.info.ip);
+                } else {
+                    // Fallback for standard Flet on some platforms
+                    // Often 'window.python_bridge(msg)' or similar depending on wrapper, 
+                    // but Flet v0.21+ uses the channel mechanism.
+                    // For now we attempt the standard postMessage.
+                    // If this fails, the manual audit button is still the robust fallback.
+                }
+            }
+        });
+    </script>
+</body>
+</html>
