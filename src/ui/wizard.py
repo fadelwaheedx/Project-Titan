@@ -19,6 +19,25 @@ class Wizard(ft.Column):
         self.deploy_progress = ft.ProgressBar(visible=False)
 
         # --- Form Fields ---
+        self.scenario_dropdown = ft.Dropdown(
+            label="Scenario Mode",
+            options=[
+                ft.dropdown.Option("simple", "Simple Setup"),
+                ft.dropdown.Option("branch", "Scenario A: Secure Branch Office"),
+                ft.dropdown.Option("wisp", "Scenario B: WISP Tower"),
+            ],
+            value="simple",
+            on_change=self._on_scenario_change
+        )
+
+        # Scenario Specific Fields
+        self.wan2_interface = ft.TextField(label="WAN2 Interface (LTE)", visible=False)
+        self.vlan_ids = ft.TextField(label="VLAN IDs (comma separated)", visible=False)
+        self.hq_wg_pubkey = ft.TextField(label="HQ WireGuard Public Key", visible=False)
+
+        self.mgmt_ip = ft.TextField(label="Management IP (Allowed Input)", visible=False)
+        self.ospf_area = ft.TextField(label="OSPF Area ID", value="0.0.0.0", visible=False)
+
         # Basic Tab Fields
         self.role_dropdown = ft.Dropdown(
             label="Router Role",
@@ -62,8 +81,7 @@ class Wizard(ft.Column):
 
         # Services Tab Fields
         self.container_chk = ft.Checkbox(label="Install Container Support")
-        self.pihole_chk = ft.Checkbox(label="Deploy PiHole/AdGuard (Container)")
-        self.pihole_url = ft.TextField(label="Container Image URL", value="https://ghcr.io/adguardteam/adguardhome")
+        self.adblock_chk = ft.Checkbox(label="Enable Native Ad-Blocking (AdList)")
 
         # QoS Tab Fields
         self.qos_dropdown = ft.Dropdown(
@@ -90,6 +108,18 @@ class Wizard(ft.Column):
         self.pppoe_pass.visible = (val == "pppoe")
         self.update()
 
+    def _on_scenario_change(self, e):
+        val = self.scenario_dropdown.value
+        # Reset visibility
+        self.wan2_interface.visible = (val == "branch")
+        self.vlan_ids.visible = (val == "branch")
+        self.hq_wg_pubkey.visible = (val == "branch")
+
+        self.mgmt_ip.visible = (val == "wisp")
+        self.ospf_area.visible = (val == "wisp")
+
+        self.update_step_view()
+
     def update_step_view(self):
         self.controls.clear()
         
@@ -109,6 +139,15 @@ class Wizard(ft.Column):
                 self.vpn_chk
             ], scroll=ft.ScrollMode.AUTO)
 
+            # Scenario Content
+            scenario_content = ft.Column([
+                self.wan2_interface,
+                self.vlan_ids,
+                self.hq_wg_pubkey,
+                self.mgmt_ip,
+                self.ospf_area
+            ])
+
             # Routing Content
             routing_content = ft.Column([
                 self.ospf_chk,
@@ -119,8 +158,7 @@ class Wizard(ft.Column):
             # Services Content
             services_content = ft.Column([
                 self.container_chk,
-                self.pihole_chk,
-                self.pihole_url
+                self.adblock_chk
             ])
 
             # QoS Content
@@ -133,6 +171,7 @@ class Wizard(ft.Column):
                 animation_duration=300,
                 tabs=[
                     ft.Tab(text="Basic", content=ft.Container(content=basic_content, padding=10)),
+                    ft.Tab(text="Scenario", content=ft.Container(content=scenario_content, padding=10)),
                     ft.Tab(text="Routing", content=ft.Container(content=routing_content, padding=10)),
                     ft.Tab(text="Services", content=ft.Container(content=services_content, padding=10)),
                     ft.Tab(text="QoS", content=ft.Container(content=qos_content, padding=10)),
@@ -142,6 +181,7 @@ class Wizard(ft.Column):
 
             self.controls.extend([
                 ft.Text("Titan Configuration Wizard", size=24, weight=ft.FontWeight.BOLD),
+                self.scenario_dropdown,
                 ft.Container(content=tabs, height=400), # Fixed height for tabs area
                 ft.Divider(),
                 ft.Row([
@@ -221,6 +261,15 @@ class Wizard(ft.Column):
             # QoS
             "qos_type": self.qos_dropdown.value,
             
+            # Scenario Data
+            "scenario_mode": self.scenario_dropdown.value,
+            "wan2_interface": self.wan2_interface.value,
+            "vlan_ids": [v.strip() for v in self.vlan_ids.value.split(',')] if self.vlan_ids.value else [],
+            "hq_wg_pubkey": self.hq_wg_pubkey.value,
+            "mgmt_ip": self.mgmt_ip.value,
+            "ospf_area": self.ospf_area.value,
+            "wan1_gateway": self.wan_gateway.value, # Reusing wan_gateway for scenario
+
             "dns_redirect": True, # Default to true for hardening
             
             # WireGuard Defaults for generation (would be dynamic in real app)
