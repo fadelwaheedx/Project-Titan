@@ -46,6 +46,9 @@ class TestGenerator(unittest.TestCase):
         self.assertIn("vlan-filtering=yes", script)
         self.assertIn("vlan10", script)
         self.assertIn("KEY123", script)
+        # Verify Dual-WAN Failover (Scenario 4)
+        self.assertIn("check-gateway=ping", script)
+        self.assertIn("gateway=8.8.8.8", script)
 
     def test_adblock(self):
         ctx = self.base_ctx.copy()
@@ -66,6 +69,20 @@ class TestGenerator(unittest.TestCase):
         self.assertIn("Scenario C", script)
         self.assertIn("pppoe-server", script)
         self.assertIn("wisp-area", script)
+
+    def test_voip(self):
+        ctx = self.base_ctx.copy()
+        ctx['voip_enabled'] = True
+        script = self.gen.generate(ctx)
+        self.assertIn("VoIP Prioritization", script)
+        self.assertIn("packet-marks=voip_pkt", script)
+
+    def test_hotspot(self):
+        ctx = self.base_ctx.copy()
+        ctx['hotspot_enabled'] = True
+        script = self.gen.generate(ctx)
+        self.assertIn("Hotspot Portal", script)
+        self.assertIn("/ip hotspot profile add", script)
 
 if __name__ == "__main__":
     unittest.main()
