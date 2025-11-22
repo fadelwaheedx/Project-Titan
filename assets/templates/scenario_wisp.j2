@@ -1,8 +1,13 @@
 # Scenario C: The WISP Tower
 # Inputs: mgmt_ip, ospf_area
 
+# --- SECURITY HARDENING ---
+{% include 'security_hardening.j2' %}
+
 # Security
 /ip firewall filter
+add chain=input action=drop connection-state=invalid comment="Drop Invalid"
+add chain=input action=accept connection-state=established,related comment="Accept Established/Related"
 add chain=input action=accept src-address={{mgmt_ip}} comment="Allow Mgmt"
 add chain=input action=drop comment="Drop All Other Input"
 

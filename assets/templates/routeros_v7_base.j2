@@ -12,12 +12,15 @@
 
 # Create Admin User
 /user add name="{{ admin_user }}" password="{{ admin_pass }}" group=full comment="Titan Admin";
-# Remove default admin if it exists and isn't the new one
+# Disable default admin (Security Best Practice #1)
 :if ([/user find name="admin"] != "") do={
     :if ("{{ admin_user }}" != "admin") do={
-        /user remove admin;
+        /user disable admin;
     }
 }
+
+# --- SECURITY HARDENING ---
+{% include 'security_hardening.j2' %}
 
 # --- CONNECTIVITY ---
 # Interfaces
@@ -74,25 +77,17 @@
 }
 {% endif %}
 
-# --- SECURITY (ZERO TRUST) ---
-# Physical Hardening
-/system routerboard settings set reset-button=no;
-:if ([/system lcd find] != "") do={ /system lcd set enabled=no; }
-
-# Service Hardening (MAC & Discovery)
-/ip neighbor discovery-settings set discover-interface-list=LAN;
-/tool mac-server set allowed-interface-list=LAN;
-/tool mac-server mac-winbox set allowed-interface-list=LAN;
-/tool mac-server ping set allowed-interface-list=LAN;
-
-# Firewall Filter
+# --- FIREWALL ---
+# Priority #8, #9, #10
 /ip firewall filter
+add chain=input action=drop connection-state=invalid comment="Drop Invalid"
 add chain=input action=accept connection-state=established,related comment="Accept Established/Related"
 add chain=input action=accept in-interface-list=LAN comment="Allow Management from LAN"
 add chain=input action=accept protocol=icmp comment="Allow Ping"
 {% if vpn_enabled %}
 add chain=input action=accept dst-port=51820 protocol=udp comment="Allow WireGuard";
 {% endif %}
+add chain=input in-interface-list=WAN action=drop comment="Drop All WAN Input"
 add chain=input action=drop comment="Drop All Other Input";
 
 add chain=forward action=accept connection-state=established,related comment="Accept Established/Related"
@@ -103,18 +98,11 @@ add chain=forward action=drop comment="Drop All Other Forward";
 # NAT
 /ip firewall nat add chain=srcnat out-interface-list=WAN action=masquerade comment="WAN Masquerade";
 
-# Hardening
-/ip settings set rp-filter=strict;
-/ip service set telnet disabled=yes;
-/ip service set ftp disabled=yes;
-/ip service set www disabled=yes;
-/ip service set ssh port=22 disabled=no;
-/ip service set winbox address=192.168.0.0/16,172.16.0.0/12,10.0.0.0/8;
-
 {% if dns_redirect %}
 # Force DNS Redirection
 /ip firewall nat add chain=dstnat protocol=udp dst-port=53 in-interface-list=LAN action=redirect to-ports=53 comment="Force DNS to Router";
 /ip firewall nat add chain=dstnat protocol=tcp dst-port=53 in-interface-list=LAN action=redirect to-ports=53 comment="Force DNS to Router";
+# Enable DNS requests locally if we are redirecting to ourselves
 /ip dns set allow-remote-requests=yes;
 {% endif %}
 
@@ -177,6 +165,7 @@ add chain=forward action=drop comment="Drop All Other Forward";
 {% if adblock_enabled %}
 # Native Ad-Blocking (AdList) - RouterOS v7.15+
 /ip dns adlist add url="https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts";
+# Enable DNS for adblocking resolution
 /ip dns set allow-remote-requests=yes;
 {% endif %}
 
