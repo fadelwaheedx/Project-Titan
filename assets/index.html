@@ -49,18 +49,20 @@
             // We expect 'info' object to contain 'ip'
             if(data.info && data.info.ip) {
                 console.log("Clicked Node IP: " + data.info.ip);
-                // Flet WebView PostMessage
-                // Check if window.chrome.webview exists (Windows) or webkit (Linux/Mac)
-                if (window.chrome && window.chrome.webview) {
-                     window.chrome.webview.postMessage(data.info.ip);
+
+                var msg = JSON.stringify({ "action": "node_click", "ip": data.info.ip });
+
+                // Modern Flet Bridge (v0.21+)
+                if (window.channel) {
+                    window.channel.postMessage(msg);
+                }
+                // Legacy / Platform Specific Fallbacks
+                else if (window.chrome && window.chrome.webview) {
+                     window.chrome.webview.postMessage(msg);
                 } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.flet) {
-                     window.webkit.messageHandlers.flet.postMessage(data.info.ip);
+                     window.webkit.messageHandlers.flet.postMessage(msg);
                 } else {
-                    // Fallback for standard Flet on some platforms
-                    // Often 'window.python_bridge(msg)' or similar depending on wrapper, 
-                    // but Flet v0.21+ uses the channel mechanism.
-                    // For now we attempt the standard postMessage.
-                    // If this fails, the manual audit button is still the robust fallback.
+                    console.warn("No Flet Bridge found.");
                 }
             }
         });

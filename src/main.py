@@ -59,22 +59,36 @@ def main(page: ft.Page):
     # This WebView loads the local HTML containing Cytoscape.js
     def handle_graph_message(e):
         """Handles messages from the Javascript graph (Click Events)."""
-        clicked_ip = e.data
+        import json
+        try:
+            # Try parsing as JSON
+            data = json.loads(e.data)
+            if isinstance(data, dict) and data.get("action") == "node_click":
+                clicked_ip = data.get("ip")
+            else:
+                # Fallback if JSON but not our schema
+                clicked_ip = str(e.data)
+        except json.JSONDecodeError:
+            # Fallback if raw string
+            clicked_ip = e.data
+
         print(f"Graph clicked IP: {clicked_ip}")
         
-        # Auto-fill the IP field and notify user
-        router_ip.value = clicked_ip
-        
-        # Trigger Audit Immediately as requested in Task 4.3
-        # "When a node ... is clicked, trigger the run_compliance_scan ... and show the results"
-        run_audit(None)
+        if clicked_ip:
+            # Auto-fill the IP field and notify user
+            router_ip.value = clicked_ip
+            router_ip.update()
+
+            # Trigger Audit Immediately as requested in Task 4.3
+            # "When a node ... is clicked, trigger the run_compliance_scan ... and show the results"
+            run_audit(None)
 
     topology_view = ft.WebView(
         url=f"http://localhost:{PORT}/index.html",
         expand=True,
         on_page_started=lambda _: print("Graph Loading..."),
         on_web_resource_error=lambda e: print("Web Error:", e.data),
-        # on_message=handle_graph_message, # TODO: Update for Flet 0.28+ (on_message removed)
+        on_message=handle_graph_message,
     )
 
     def run_scan(e):

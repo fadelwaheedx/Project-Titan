@@ -75,6 +75,16 @@
 {% endif %}
 
 # --- SECURITY (ZERO TRUST) ---
+# Physical Hardening
+/system routerboard settings set reset-button=no;
+:if ([/system lcd find] != "") do={ /system lcd set enabled=no; }
+
+# Service Hardening (MAC & Discovery)
+/ip neighbor discovery-settings set discover-interface-list=LAN;
+/tool mac-server set allowed-interface-list=LAN;
+/tool mac-server mac-winbox set allowed-interface-list=LAN;
+/tool mac-server ping set allowed-interface-list=LAN;
+
 # Firewall Filter
 /ip firewall filter
 add chain=input action=accept connection-state=established,related comment="Accept Established/Related"
@@ -131,6 +141,16 @@ add chain=forward action=drop comment="Drop All Other Forward";
 {% endif %}
 
 # --- QOS ---
+{% if voip_enabled %}
+# VoIP Prioritization (Scenario 1)
+/ip firewall mangle add chain=prerouting protocol=udp dst-port=5060 action=mark-connection new-connection-mark=voip_conn passthrough=yes comment="Mark VoIP SIP";
+/ip firewall mangle add chain=prerouting protocol=udp dst-port=10000-20000 action=mark-connection new-connection-mark=voip_conn passthrough=yes comment="Mark VoIP RTP";
+/ip firewall mangle add chain=prerouting connection-mark=voip_conn action=mark-packet new-packet-mark=voip_pkt passthrough=no;
+
+# Priority Queue for VoIP
+/queue simple add name="VoIP-Priority" target={{ lan_ip | ip_network_base }}/24 packet-marks=voip_pkt priority=1/1 max-limit=100M/100M;
+{% endif %}
+
 {% if qos_type == 'cake' %}
 # CAKE Traffic Shaping
 /queue type add name=cake-default kind=cake;
@@ -145,6 +165,15 @@ add chain=forward action=drop comment="Drop All Other Forward";
 {% endif %}
 
 # --- ADVANCED SERVICES ---
+{% if hotspot_enabled %}
+# Hotspot Portal (Scenario 2)
+# Basic Hotspot Setup on LAN-Bridge
+/ip hotspot profile add name=hsprof1 dns-name="wifi.login" html-directory=hotspot;
+/ip hotspot add name=hs1 interface=LAN-Bridge profile=hsprof1;
+/ip hotspot user profile add name=guest-limited rate-limit="1M/1M" shared-users=1;
+/ip hotspot user add name=guest password=guest profile=guest-limited;
+{% endif %}
+
 {% if adblock_enabled %}
 # Native Ad-Blocking (AdList) - RouterOS v7.15+
 /ip dns adlist add url="https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts";
@@ -153,7 +182,7 @@ add chain=forward action=drop comment="Drop All Other Forward";
 
 {% if container_enabled %}
 # Container Support
-# Note: Requires 'container' package and '/system/device-mode/update container=yes' (or 'advanced' in v7.17+)
+# Note: Requires 'container' package and '/system/device-mode/update container=yes' (mode='advanced' in v7.17+)
 /interface veth add name=veth1 address=172.17.0.2/24 gateway=172.17.0.1;
 /interface bridge add name=dockers;
 /interface bridge port add bridge=dockers interface=veth1;

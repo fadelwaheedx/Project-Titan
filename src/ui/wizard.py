@@ -82,6 +82,7 @@ class Wizard(ft.Column):
         # Services Tab Fields
         self.container_chk = ft.Checkbox(label="Install Container Support")
         self.adblock_chk = ft.Checkbox(label="Enable Native Ad-Blocking (AdList)")
+        self.hotspot_chk = ft.Checkbox(label="Enable Hotspot (Guest Portal)")
 
         # QoS Tab Fields
         self.qos_dropdown = ft.Dropdown(
@@ -93,6 +94,7 @@ class Wizard(ft.Column):
             ],
             value="none"
         )
+        self.voip_chk = ft.Checkbox(label="Prioritize VoIP Traffic (SIP/RTP)")
         self.update_step_view()
 
     def _generate_password(self, length=12):
@@ -158,12 +160,14 @@ class Wizard(ft.Column):
             # Services Content
             services_content = ft.Column([
                 self.container_chk,
-                self.adblock_chk
+                self.adblock_chk,
+                self.hotspot_chk
             ])
 
             # QoS Content
             qos_content = ft.Column([
-                self.qos_dropdown
+                self.qos_dropdown,
+                self.voip_chk
             ])
 
             tabs = ft.Tabs(
@@ -256,10 +260,11 @@ class Wizard(ft.Column):
             "bgp_asn": self.bgp_asn.value,
             # Services
             "container_enabled": self.container_chk.value,
-            "pihole_enabled": self.pihole_chk.value,
-            "pihole_url": self.pihole_url.value,
+            "adblock_enabled": self.adblock_chk.value,
+            "hotspot_enabled": self.hotspot_chk.value,
             # QoS
             "qos_type": self.qos_dropdown.value,
+            "voip_enabled": self.voip_chk.value,
             
             # Scenario Data
             "scenario_mode": self.scenario_dropdown.value,
@@ -269,6 +274,7 @@ class Wizard(ft.Column):
             "mgmt_ip": self.mgmt_ip.value,
             "ospf_area": self.ospf_area.value,
             "wan1_gateway": self.wan_gateway.value, # Reusing wan_gateway for scenario
+            "wan1_ip": self.wan_ip.value, # Mapping for Scenario Branch
 
             "dns_redirect": True, # Default to true for hardening
             
