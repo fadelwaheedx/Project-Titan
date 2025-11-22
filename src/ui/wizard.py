@@ -6,9 +6,10 @@ import os
 from logic.generator import ConfigGenerator
 from logic.deployer import Deployer
 
-class Wizard(ft.UserControl):
+class Wizard(ft.Column):
     def __init__(self, on_complete=None):
         super().__init__()
+        self.expand = True
         self.on_complete = on_complete
         self.current_step = 0
         self.config_data = {}
@@ -74,6 +75,7 @@ class Wizard(ft.UserControl):
             ],
             value="none"
         )
+        self.update_step_view()
 
     def _generate_password(self, length=12):
         alphabet = string.ascii_letters + string.digits
@@ -88,13 +90,8 @@ class Wizard(ft.UserControl):
         self.pppoe_pass.visible = (val == "pppoe")
         self.update()
 
-    def build(self):
-        self.step_content = ft.Column()
-        self.update_step_view()
-        return self.step_content
-
     def update_step_view(self):
-        self.step_content.controls.clear()
+        self.controls.clear()
         
         if self.current_step == 0:
             # Use Tabs for Step 0 (Configuration)
@@ -143,7 +140,7 @@ class Wizard(ft.UserControl):
                 expand=1,
             )
 
-            self.step_content.controls.extend([
+            self.controls.extend([
                 ft.Text("Titan Configuration Wizard", size=24, weight=ft.FontWeight.BOLD),
                 ft.Container(content=tabs, height=400), # Fixed height for tabs area
                 ft.Divider(),
@@ -165,11 +162,11 @@ class Wizard(ft.UserControl):
             
             self.deploy_btn = ft.ElevatedButton(
                 "Deploy Configuration", 
-                icon=ft.icons.ROCKET_LAUNCH, 
+                icon=ft.Icons.ROCKET_LAUNCH,
                 on_click=self.deploy_handler
             )
             
-            self.step_content.controls.extend([
+            self.controls.extend([
                 ft.Text("Configuration Ready!", size=20, weight=ft.FontWeight.BOLD),
                 ft.Text("Review the generated script below:"),
                 script_preview,
@@ -181,7 +178,8 @@ class Wizard(ft.UserControl):
                 ])
             ])
             
-        self.update()
+        if self.page:
+            self.update()
 
     def goto_step(self, step):
         self.current_step = step
@@ -241,7 +239,7 @@ class Wizard(ft.UserControl):
             if self.on_complete:
                 self.on_complete(script)
         except Exception as ex:
-            self.step_content.controls.append(ft.Text(f"Error: {ex}", color="red"))
+            self.controls.append(ft.Text(f"Error: {ex}", color="red"))
             self.update()
 
     def deploy_handler(self, e):

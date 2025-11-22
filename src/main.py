@@ -74,7 +74,7 @@ def main(page: ft.Page):
         expand=True,
         on_page_started=lambda _: print("Graph Loading..."),
         on_web_resource_error=lambda e: print("Web Error:", e.data),
-        on_message=handle_graph_message,
+        # on_message=handle_graph_message, # TODO: Update for Flet 0.28+ (on_message removed)
     )
 
     def run_scan(e):
@@ -123,8 +123,8 @@ def main(page: ft.Page):
             # Build Report UI
             items = []
             for check in report["checks"]:
-                icon = ft.icons.CHECK_CIRCLE if check["status"] == "PASS" else ft.icons.WARNING
-                color = ft.colors.GREEN if check["status"] == "PASS" else (ft.colors.ORANGE if check["status"] == "WARNING" else ft.colors.RED)
+                icon = ft.Icons.CHECK_CIRCLE if check["status"] == "PASS" else ft.Icons.WARNING
+                color = ft.Colors.GREEN if check["status"] == "PASS" else (ft.Colors.ORANGE if check["status"] == "WARNING" else ft.Colors.RED)
                 items.append(
                     ft.ListTile(
                         leading=ft.Icon(icon, color=color),
@@ -161,9 +161,9 @@ def main(page: ft.Page):
             router_ip,
             router_user,
             router_pass,
-            ft.ElevatedButton("Scan Neighbors", icon=ft.icons.RADAR, on_click=run_scan),
-            ft.ElevatedButton("Audit Device", icon=ft.icons.SECURITY, on_click=run_audit),
-            ft.ElevatedButton("Start Setup (Wizard)", icon=ft.icons.SETTINGS, on_click=lambda e: switch_view(1)),
+            ft.ElevatedButton("Scan Neighbors", icon=ft.Icons.RADAR, on_click=run_scan),
+            ft.ElevatedButton("Audit Device", icon=ft.Icons.SECURITY, on_click=run_audit),
+            ft.ElevatedButton("Start Setup (Wizard)", icon=ft.Icons.SETTINGS, on_click=lambda e: switch_view(1)),
         ],
         alignment=ft.MainAxisAlignment.CENTER,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -174,7 +174,7 @@ def main(page: ft.Page):
         content=login_controls,
         padding=50,
         width=400,
-        bgcolor=ft.colors.SURFACE_VARIANT,
+        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
         border_radius=10,
     )
 
@@ -195,7 +195,7 @@ def main(page: ft.Page):
         monitor_view.router_ip = router_ip.value
         monitor_view.router_user = router_user.value
         monitor_view.router_pass = router_pass.value
-        # Restart poller if running is tricky, but UserControl did_mount handles restart on view switch.
+        # Restart poller if running is tricky, but Container did_mount handles restart on view switch.
         # We leave it to the user to switch tabs to refresh.
 
     router_ip.on_change = update_monitor_creds
@@ -225,18 +225,18 @@ def main(page: ft.Page):
         label_type=ft.NavigationRailLabelType.ALL,
         destinations=[
             ft.NavigationRailDestination(
-                icon=ft.icons.LAN, 
-                selected_icon=ft.icons.LAN_OUTLINED, 
+                icon=ft.Icons.LAN,
+                selected_icon=ft.Icons.LAN_OUTLINED,
                 label="Scan"
             ),
             ft.NavigationRailDestination(
-                icon=ft.icons.SETTINGS, 
-                selected_icon=ft.icons.SETTINGS_OUTLINED, 
+                icon=ft.Icons.SETTINGS,
+                selected_icon=ft.Icons.SETTINGS_OUTLINED,
                 label="Wizard"
             ),
             ft.NavigationRailDestination(
-                icon=ft.icons.MONITOR_HEART, 
-                selected_icon=ft.icons.MONITOR_HEART_OUTLINED, 
+                icon=ft.Icons.MONITOR_HEART,
+                selected_icon=ft.Icons.MONITOR_HEART_OUTLINED,
                 label="Monitor"
             ),
         ],
