@@ -1,0 +1,30 @@
+# --- SECURITY HARDENING (Top 10) ---
+# 2. Disable Insecure Services
+/ip service set telnet disabled=yes
+/ip service set ftp disabled=yes
+/ip service set www disabled=yes
+/ip service set api disabled=yes
+/ip service set api-ssl disabled=yes
+
+# 6. SSH Security (Strong Crypto)
+/ip ssh set strong-crypto=yes
+/ip service set ssh port=22 disabled=no
+
+# 3. Restrict Management Access
+# (Using RFC1918 ranges as safe default. Adjust specific subnets in production.)
+/ip service set winbox address=192.168.0.0/16,172.16.0.0/12,10.0.0.0/8
+/ip service set ssh address=192.168.0.0/16,172.16.0.0/12,10.0.0.0/8
+
+# 4. L2 Visibility (Neighbor Discovery) - DISABLED
+# Priority #4: Prevent broadcasting identity.
+/ip neighbor discovery-settings set discover-interface-list=none
+/tool mac-server set allowed-interface-list=none
+/tool mac-server mac-winbox set allowed-interface-list=none
+/tool mac-server ping set allowed-interface-list=none
+
+# 5. IP Services (DNS) - CLOSED
+# Priority #5: Prevent Open Resolver.
+/ip dns set allow-remote-requests=no
+
+# 7. Anti-Spoofing (RPF)
+/ip settings set rp-filter=strict

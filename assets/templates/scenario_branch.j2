@@ -1,6 +1,9 @@
 # Scenario A: The Secure Branch Office
 # Inputs: wan1_ip, wan2_interface, vlan_ids (list/dict), hq_wg_pubkey
 
+# --- SECURITY HARDENING ---
+{% include 'security_hardening.j2' %}
+
 /interface bridge
 add name=bridge vlan-filtering=yes
 
@@ -28,3 +31,12 @@ add distance=2 gateway={{wan2_interface}}
 /routing ospf instance add name=ospf-v3-inst version=3
 /routing ospf area add instance=ospf-v3-inst name=backbone area-id=0.0.0.0
 /routing ospf interface-template add area=backbone interfaces=wg-hq
+
+# --- FIREWALL (Branch) ---
+# Priority: Drop Invalid -> Accept Established -> Allow Services -> Drop All
+/ip firewall filter
+add chain=input action=drop connection-state=invalid comment="Drop Invalid"
+add chain=input action=accept connection-state=established,related comment="Accept Established/Related"
+add chain=input action=accept protocol=icmp comment="Allow Ping"
+add chain=input action=accept dst-port=13231 protocol=udp comment="Allow WireGuard";
+add chain=input action=drop comment="Drop All Other Input"
